@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "generationPlus", "..\generationPlus", "{61CB4DE6-187D-4D77-8B9C-1DE2B989D3D1}"
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Rain-World-Interactive-Map", ".", "{61CB4DE6-187D-4D77-8B9C-1DE2B989D3D1}"
 	ProjectSection(WebsiteProperties) = preProject
 		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.0"
 		Debug.AspNetCompiler.VirtualPath = "/localhost_54012"
