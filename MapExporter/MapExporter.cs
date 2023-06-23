@@ -15,11 +15,11 @@ using System.Text.RegularExpressions;
 
 namespace MapExporter;
 
-[BepInPlugin("io.github.henpemaz-dual", "Map Exporter", "1.0.0")]
+[BepInPlugin("io.github.henpemaz-dual", "Map Exporter", "1.0.1")]
 sealed class MapExporter : BaseUnityPlugin
 {
     // Config
-    static readonly string[] captureSpecific = { }; // For example, "White;SU" loads Outskirts as Survivor
+    static readonly string[] captureSpecific = {"Sofanthiel"}; // For example, "White;SU" loads Outskirts as Survivor
     static readonly bool screenshots = true;
 
     static readonly Dictionary<string, int[]> blacklistedCams = new()
@@ -359,12 +359,11 @@ sealed class MapExporter : BaseUnityPlugin
     private static int ScugPriority(string slugcat)
     {
         return slugcat switch {
-            "sofanthiel" => 10, // Bypass for generating Inv
-          /*"white" => 10,      // do White first, they have the most generic regions
+            "white" => 10,      // do White first, they have the most generic regions
             "artificer" => 9,   // do Artificer next, they have Metropolis, Waterfront Facility, and past-GW
             "saint" => 8,       // do Saint next for Undergrowth and Silent Construct
             "rivulet" => 7,     // do Rivulet for The Rot*/
-            _ => -1              // everyone else has a mix of duplicate rooms : normally 0
+            _ => 0              // everyone else has a mix of duplicate rooms
         };
     }
 
@@ -402,8 +401,8 @@ sealed class MapExporter : BaseUnityPlugin
             // Iterate over each region on each slugcat
             foreach (string slugcatName in SlugcatStats.Name.values.entries.OrderByDescending(ScugPriority)) {
                 SlugcatStats.Name slugcat = new(slugcatName);
-                // Include Inv with the rest
-                if (slugcatName != "sofanthiel" && SlugcatStats.HiddenOrUnplayableSlugcat(slugcat)) {
+
+                if (SlugcatStats.HiddenOrUnplayableSlugcat(slugcat)) {
                     continue;
                 }
 
