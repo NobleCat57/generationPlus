@@ -19,7 +19,7 @@ namespace MapExporter;
 sealed class MapExporter : BaseUnityPlugin
 {
     // Config
-    static readonly string[] captureSpecific = {"Sofanthiel"}; // For example, "White;SU" loads Outskirts as Survivor
+    static readonly string[] captureSpecific = {"Inv;SS"}; // For example, "White;SU" loads Outskirts as Survivor
     static readonly bool screenshots = true;
 
     static readonly Dictionary<string, int[]> blacklistedCams = new()
@@ -362,7 +362,7 @@ sealed class MapExporter : BaseUnityPlugin
             "white" => 10,      // do White first, they have the most generic regions
             "artificer" => 9,   // do Artificer next, they have Metropolis, Waterfront Facility, and past-GW
             "saint" => 8,       // do Saint next for Undergrowth and Silent Construct
-            "rivulet" => 7,     // do Rivulet for The Rot*/
+            "rivulet" => 7,     // do Rivulet for The Rot
             _ => 0              // everyone else has a mix of duplicate rooms
         };
     }
