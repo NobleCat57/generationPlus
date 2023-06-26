@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace MapExporter;
-
+/*
 public class MapExporterOptions : OptionInterface
 {
     private readonly ManualLogSource Logger;
@@ -53,3 +53,4 @@ public class MapExporterOptions : OptionInterface
     }
 
 }
+*/
