@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using BepInEx;
 using BepInEx.Logging;
 using System.Text.RegularExpressions;
+using System;
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -16,10 +17,23 @@ using System.Text.RegularExpressions;
 namespace MapExporter;
 
 [BepInPlugin("io.github.henpemaz-dual", "Map Exporter", "1.0.1")]
-sealed class MapExporter : BaseUnityPlugin
+public sealed class MapExporterMain : BaseUnityPlugin
 {
+    /*private MapExporterOptions Options;
+    public MapExporterMain()
+    {
+        try
+        {
+            Options = new MapExporterOptions(this, Logger);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex);
+            throw;
+        }
+    }*/
     // Config
-    static readonly string[] captureSpecific = {"Inv;SS"}; // For example, "White;SU" loads Outskirts as Survivor
+    static readonly string[] captureSpecific = {}; // For example, "White;SU" loads Outskirts as Survivor
     static readonly bool screenshots = true;
 
     static readonly Dictionary<string, int[]> blacklistedCams = new()
@@ -60,6 +74,30 @@ sealed class MapExporter : BaseUnityPlugin
         On.RainWorld.Update += RainWorld_Update1;
         On.RainWorld.Start += RainWorld_Start; // "FUCK compatibility just run my hooks" - love you too henpemaz
     }
+    /*
+    On.RainWorld.OnModsInit += RainWorldOnOnModsInit;
+    private bool IsInit;
+    private void RainWorldOnOnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
+    {
+        orig(self);
+        try
+        {
+            if (IsInit) return;
+
+            //Your hooks go here
+
+
+            MachineConnector.SetRegisteredOI("JuliaCat.MapExporter", Options);
+            IsInit = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex);
+            throw;
+        }
+
+    }
+    */
 
     private void RainWorld_Update1(On.RainWorld.orig_Update orig, RainWorld self)
     {
@@ -83,9 +121,9 @@ sealed class MapExporter : BaseUnityPlugin
         On.RainWorldGame.ctor += RainWorldGame_ctor;
         On.RainWorldGame.Update += RainWorldGame_Update;
         On.RainWorldGame.RawUpdate += RainWorldGame_RawUpdate;
-        new Hook(typeof(RainWorldGame).GetProperty("TimeSpeedFac").GetGetMethod(), typeof(MapExporter).GetMethod("RainWorldGame_ZeroProperty"), this);
-        new Hook(typeof(RainWorldGame).GetProperty("InitialBlackSeconds").GetGetMethod(), typeof(MapExporter).GetMethod("RainWorldGame_ZeroProperty"), this);
-        new Hook(typeof(RainWorldGame).GetProperty("FadeInTime").GetGetMethod(), typeof(MapExporter).GetMethod("RainWorldGame_ZeroProperty"), this);
+        new Hook(typeof(RainWorldGame).GetProperty("TimeSpeedFac").GetGetMethod(), typeof(MapExporterMain).GetMethod("RainWorldGame_ZeroProperty"), this);
+        new Hook(typeof(RainWorldGame).GetProperty("InitialBlackSeconds").GetGetMethod(), typeof(MapExporterMain).GetMethod("RainWorldGame_ZeroProperty"), this);
+        new Hook(typeof(RainWorldGame).GetProperty("FadeInTime").GetGetMethod(), typeof(MapExporterMain).GetMethod("RainWorldGame_ZeroProperty"), this);
         On.OverWorld.WorldLoaded += OverWorld_WorldLoaded;
         On.Room.ReadyForAI += Room_ReadyForAI;
         On.Room.Loaded += Room_Loaded;
@@ -112,7 +150,7 @@ sealed class MapExporter : BaseUnityPlugin
     // Consistent RNG ?
     private void RainWorld_Update(On.RainWorld.orig_Update orig, RainWorld self)
     {
-        Random.InitState(0);
+        UnityEngine.Random.InitState(0);
         orig(self);
     }
 
@@ -363,6 +401,7 @@ sealed class MapExporter : BaseUnityPlugin
             "artificer" => 9,   // do Artificer next, they have Metropolis, Waterfront Facility, and past-GW
             "saint" => 8,       // do Saint next for Undergrowth and Silent Construct
             "rivulet" => 7,     // do Rivulet for The Rot
+            "inv" => 6,         // because
             _ => 0              // everyone else has a mix of duplicate rooms
         };
     }
@@ -373,7 +412,7 @@ sealed class MapExporter : BaseUnityPlugin
     {
         // Task start
         Logger.LogDebug("capture task start");
-        Random.InitState(0);
+        UnityEngine.Random.InitState(0);
 
         // 1st camera transition is a bit whack ? give it a sec to load
         //while (game.cameras[0].www != null) yield return null;
@@ -429,7 +468,7 @@ sealed class MapExporter : BaseUnityPlugin
         SlugcatStats.Name slugcat = game.StoryCharacter;
 
         // load region
-        Random.InitState(0);
+        UnityEngine.Random.InitState(0);
         game.overWorld.LoadWorld(region, slugcat, false);
         Logger.LogDebug($"Loaded {slugcat}/{region}");
 
@@ -466,7 +505,7 @@ sealed class MapExporter : BaseUnityPlugin
 
         // load room
         game.overWorld.activeWorld.loadingRooms.Clear();
-        Random.InitState(0);
+        UnityEngine.Random.InitState(0);
         game.overWorld.activeWorld.ActivateRoom(room);
         // load room until it is loaded
         if (game.overWorld.activeWorld.loadingRooms.Count > 0 && game.overWorld.activeWorld.loadingRooms[0].room == room.realizedRoom) {
@@ -488,19 +527,19 @@ sealed class MapExporter : BaseUnityPlugin
         }
 
         yield return null;
-        Random.InitState(0);
+        UnityEngine.Random.InitState(0);
         // go to room
         game.cameras[0].MoveCamera(room.realizedRoom, 0);
         game.cameras[0].virtualMicrophone.AllQuiet();
         // get to room
         while (game.cameras[0].loadingRoom != null) yield return null;
-        Random.InitState(0);
+        UnityEngine.Random.InitState(0);
 
         regionContent.UpdateRoom(room.realizedRoom);
 
         for (int i = 0; i < room.realizedRoom.cameraPositions.Length; i++) {
             // load screen
-            Random.InitState(room.name.GetHashCode()); // allow for deterministic random numbers, to make rain look less garbage
+            UnityEngine.Random.InitState(room.name.GetHashCode()); // allow for deterministic random numbers, to make rain look less garbage
             game.cameras[0].MoveCamera(i);
             game.cameras[0].virtualMicrophone.AllQuiet();
             while (game.cameras[0].www != null) yield return null;
@@ -521,7 +560,7 @@ sealed class MapExporter : BaseUnityPlugin
 
             yield return null; // one extra frame after ??
         }
-        Random.InitState(0);
+        UnityEngine.Random.InitState(0);
         room.Abstractize();
         yield return null;
     }
