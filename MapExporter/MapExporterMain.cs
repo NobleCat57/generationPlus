@@ -9,6 +9,9 @@ using BepInEx;
 using BepInEx.Logging;
 using System.Text.RegularExpressions;
 using System;
+using MapExporter;
+using JetBrains.Annotations;
+using Newtonsoft.Json.Linq;
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -19,21 +22,8 @@ namespace MapExporter;
 [BepInPlugin("io.github.henpemaz-dual", "Map Exporter", "1.0.1")]
 public sealed class MapExporterMain : BaseUnityPlugin
 {
-    /*private MapExporterOptions Options;
-    public MapExporterMain()
-    {
-        try
-        {
-            Options = new MapExporterOptions(this, Logger);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex);
-            throw;
-        }
-    }*/
     // Config
-    static readonly string[] captureSpecific = {}; // For example, "White;SU" loads Outskirts as Survivor
+    static readonly string[] captureSpecific = { }; // For example, "White;SU" loads Outskirts as Survivor
     static readonly bool screenshots = true;
 
     static readonly Dictionary<string, int[]> blacklistedCams = new()
@@ -74,32 +64,8 @@ public sealed class MapExporterMain : BaseUnityPlugin
         On.RainWorld.Update += RainWorld_Update1;
         On.RainWorld.Start += RainWorld_Start; // "FUCK compatibility just run my hooks" - love you too henpemaz
     }
-    /*
-    On.RainWorld.OnModsInit += RainWorldOnOnModsInit;
-    private bool IsInit;
-    private void RainWorldOnOnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
-    {
-        orig(self);
-        try
-        {
-            if (IsInit) return;
 
-            //Your hooks go here
-
-
-            MachineConnector.SetRegisteredOI("JuliaCat.MapExporter", Options);
-            IsInit = true;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex);
-            throw;
-        }
-
-    }
-    */
-
-    private void RainWorld_Update1(On.RainWorld.orig_Update orig, RainWorld self)
+    public void RainWorld_Update1(On.RainWorld.orig_Update orig, RainWorld self)
     {
         try {
             orig(self);
@@ -109,7 +75,7 @@ public sealed class MapExporterMain : BaseUnityPlugin
         }
     }
 
-    private void RainWorld_Start(On.RainWorld.orig_Start orig, RainWorld self)
+    public void RainWorld_Start(On.RainWorld.orig_Start orig, RainWorld self)
     {
         On.Json.Serializer.SerializeValue += Serializer_SerializeValue;
         On.RainWorld.LoadSetupValues += RainWorld_LoadSetupValues;
@@ -137,7 +103,7 @@ public sealed class MapExporterMain : BaseUnityPlugin
         orig(self);
     }
 
-    private void Serializer_SerializeValue(On.Json.Serializer.orig_SerializeValue orig, Json.Serializer self, object value)
+    public void Serializer_SerializeValue(On.Json.Serializer.orig_SerializeValue orig, Json.Serializer self, object value)
     {
         if (value is IJsonObject obj) {
             orig(self, obj.ToJson());
@@ -148,7 +114,7 @@ public sealed class MapExporterMain : BaseUnityPlugin
     }
 
     // Consistent RNG ?
-    private void RainWorld_Update(On.RainWorld.orig_Update orig, RainWorld self)
+    public void RainWorld_Update(On.RainWorld.orig_Update orig, RainWorld self)
     {
         UnityEngine.Random.InitState(0);
         orig(self);
@@ -177,7 +143,7 @@ public sealed class MapExporterMain : BaseUnityPlugin
         self.myTimeStacker += 2f;
         orig(self, dt);
     }
-    //  no grav swithcing
+    //  no gravity switching
     private void BrokenAntiGravity_ctor(On.AntiGravity.BrokenAntiGravity.orig_ctor orig, AntiGravity.BrokenAntiGravity self, int cycleMin, int cycleMax, RainWorldGame game)
     {
         orig(self, cycleMin, cycleMax, game);
@@ -284,7 +250,7 @@ public sealed class MapExporterMain : BaseUnityPlugin
         orig(self);
     }
 
-    // no orcacles
+    // no oracles
     private void Room_ReadyForAI(On.Room.orig_ReadyForAI orig, Room self)
     {
         string oldname = self.abstractRoom.name;
@@ -389,6 +355,11 @@ public sealed class MapExporterMain : BaseUnityPlugin
         return Path.Combine(PathOfRegion(slugcat, region), "metadata.json");
     }
 
+    static string PathOfRoomSettings(string slugcat, string region)
+    {
+        return Path.Combine(PathOfRegion(slugcat, region), "roomsettings.json");
+    }
+
     static string PathOfScreenshot(string slugcat, string region, string room, int num)
     {
         return $"{Path.Combine(PathOfRegion(slugcat, region), room.ToLower())}_{num}.png";
@@ -440,7 +411,7 @@ public sealed class MapExporterMain : BaseUnityPlugin
             // Iterate over each region on each slugcat
             foreach (string slugcatName in SlugcatStats.Name.values.entries.OrderByDescending(ScugPriority)) {
                 SlugcatStats.Name slugcat = new(slugcatName);
-
+                // contains inv, multiplayer cats, and slups
                 if (SlugcatStats.HiddenOrUnplayableSlugcat(slugcat)) {
                     continue;
                 }
@@ -463,7 +434,7 @@ public sealed class MapExporterMain : BaseUnityPlugin
         Application.Quit();
     }
 
-    private System.Collections.IEnumerable CaptureRegion(RainWorldGame game, string region)
+    public System.Collections.IEnumerable CaptureRegion(RainWorldGame game, string region)
     {
         SlugcatStats.Name slugcat = game.StoryCharacter;
 
@@ -489,7 +460,7 @@ public sealed class MapExporterMain : BaseUnityPlugin
         }
         else {
             foreach (var room in rooms) {
-                foreach (var step in CaptureRoom(room, mapContent))
+                foreach (var step in CaptureRoom(game.world, room, mapContent))
                     yield return step;
             }
         }
@@ -499,7 +470,7 @@ public sealed class MapExporterMain : BaseUnityPlugin
         Logger.LogDebug("capture task done with " + region);
     }
 
-    private System.Collections.IEnumerable CaptureRoom(AbstractRoom room, RegionInfo regionContent)
+    public System.Collections.IEnumerable CaptureRoom(World world, AbstractRoom room, RegionInfo regionContent)
     {
         RainWorldGame game = room.world.game;
 
@@ -525,8 +496,86 @@ public sealed class MapExporterMain : BaseUnityPlugin
             }
             room.realizedRoom.cameraPositions = newpos.ToArray();
         }
-
         yield return null;
+
+        //Attempt to add placed objects within room settings to the room capture process
+
+        SlugcatStats.Name slugcat = game.StoryCharacter;
+        HashSet<string> worldPlacedObjects;
+        worldPlacedObjects = new HashSet<string>();
+
+        string path = AssetManager.ResolveFilePath(
+                $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
+                );
+
+        if (!File.Exists(path))
+        {
+            path = AssetManager.ResolveFilePath(
+                $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings.txt"
+                );
+            if (!File.Exists(path))
+            {
+                path = AssetManager.ResolveFilePath(
+                    $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings.txt"
+                    );
+                if (!File.Exists(path))
+                {
+                    Logger.LogWarning($"No room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+
+                    path = AssetManager.ResolveFilePath(
+                    $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
+                    );
+
+                    if (!File.Exists(path))
+                    {
+                        Logger.LogWarning($"No gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+                    }
+                    else
+                    {
+                        Logger.LogDebug($"Found specific gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+
+                        AssimilatePlacedObjects(File.ReadAllLines(path));
+                    }
+                }
+                else
+                {
+                    Logger.LogDebug($"Found generic gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+
+                    AssimilatePlacedObjects(File.ReadAllLines(path));
+                }
+            }
+            else
+            {
+                Logger.LogDebug($"Found generic room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+
+                AssimilatePlacedObjects(File.ReadAllLines(path));
+            }
+
+
+        }
+        else
+        {
+            Logger.LogDebug($"Found specific room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+
+            AssimilatePlacedObjects(File.ReadAllLines(path));
+        }
+
+        void AssimilatePlacedObjects(IEnumerable<string> raw)
+                    {
+                        bool insideofplacedobjects = false;
+                        foreach (var item in raw)
+                        {
+                            if (item == "PlacedObjects: ") insideofplacedobjects = true;
+                            else if (item == "AmbientSounds: ") insideofplacedobjects = false;
+                            else if (insideofplacedobjects)
+                            {
+                                if (string.IsNullOrEmpty(item) || item.StartsWith("//")) continue;
+                                worldPlacedObjects.Add(item);
+                            }
+                        }
+                    }
+    File.WriteAllText(PathOfRoomSettings(slugcat.value, world.name), Json.Serialize(worldPlacedObjects));
+
         UnityEngine.Random.InitState(0);
         // go to room
         game.cameras[0].MoveCamera(room.realizedRoom, 0);

@@ -4,10 +4,11 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.IO;
 using RWCustom;
+using System;
 
 namespace MapExporter;
 
-sealed class RegionInfo : IJsonObject
+public class RegionInfo : IJsonObject
 {
     readonly Dictionary<string, RoomEntry> rooms;
     readonly List<ConnectionEntry> connections;
@@ -19,6 +20,7 @@ sealed class RegionInfo : IJsonObject
     readonly HashSet<string> worldRoomTags;
     readonly HashSet<string> worldSpawns;
     readonly HashSet<string> worldBatMigration;
+    readonly HashSet<string> worldPlacedObjects;
 
     public string copyRooms;
 
@@ -37,17 +39,19 @@ sealed class RegionInfo : IJsonObject
         worldRoomTags = new HashSet<string>();
         worldSpawns = new HashSet<string>();
         worldBatMigration = new HashSet<string>();
+        worldPlacedObjects = new HashSet<string>();
 
         LoadMapConfig(world);
         LoadWorldConfig(world);
+        LoadRoomConfig(world);
     }
 
-    private RoomEntry GetOrCreateRoomEntry(string name)
+    public RoomEntry GetOrCreateRoomEntry(string name)
     {
         return rooms.TryGetValue(name, out var value) ? value : rooms[name] = new(name);
     }
 
-    private void LoadMapConfig(World world)
+    public void LoadMapConfig(World world)
     {
         string path = AssetManager.ResolveFilePath(
             $"World{Path.DirectorySeparatorChar}{world.name}{Path.DirectorySeparatorChar}map_{world.name}-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
@@ -80,8 +84,8 @@ sealed class RegionInfo : IJsonObject
             }
         }
     }
-                 
-    private void LoadWorldConfig(World world)
+
+    public void LoadWorldConfig(World world)
     {
         string acronym = world.region.name;
         string path = AssetManager.ResolveFilePath($"world/{acronym}/world_{acronym}.txt");
@@ -96,7 +100,12 @@ sealed class RegionInfo : IJsonObject
         }
     }
 
-    private void AssimilateConditionalLinks(IEnumerable<string> raw)
+    public void LoadRoomConfig(World world)
+    {
+
+    }
+
+    public void AssimilateConditionalLinks(IEnumerable<string> raw)
     {
         bool insideofconditionallinks = false;
         foreach (var item in raw)
@@ -111,7 +120,7 @@ sealed class RegionInfo : IJsonObject
         }
     }
 
-    private void AssimilateRoomTags(IEnumerable<string> raw)
+    public void AssimilateRoomTags(IEnumerable<string> raw)
     {
         bool insideofrooms = false;
         foreach (var item in raw)
@@ -126,7 +135,7 @@ sealed class RegionInfo : IJsonObject
         }
     }
 
-    private void AssimilateCreatures(IEnumerable<string> raw)
+    public void AssimilateCreatures(IEnumerable<string> raw)
     {
         bool insideofcreatures = false;
         foreach (var item in raw)
@@ -141,7 +150,7 @@ sealed class RegionInfo : IJsonObject
         }
     }
 
-    private void AssimilateBatMigration(IEnumerable<string> raw)
+    public void AssimilateBatMigration(IEnumerable<string> raw)
     {
         bool insideofbatmigration = false;
         foreach (var item in raw)
@@ -184,6 +193,7 @@ sealed class RegionInfo : IJsonObject
         ret["roomTags"] = worldRoomTags.ToArray();
         ret["spawns"] = worldSpawns.ToArray();
         ret["batMigration"] = worldBatMigration.ToArray();
+        ret["placedObjects"] = worldPlacedObjects.ToArray();
         return ret;
     }
 
@@ -199,7 +209,7 @@ sealed class RegionInfo : IJsonObject
 
     }
 
-    sealed class RoomEntry : IJsonObject
+    public class RoomEntry : IJsonObject
     {
         public string roomName;
 

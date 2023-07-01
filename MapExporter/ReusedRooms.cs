@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace MapExporter;
@@ -13,7 +14,7 @@ static class ReusedRooms
     static readonly Dictionary<string, RegionData> regions = new();
 
     public static string SlugcatRoomsToUse(string slugcat, World world, List<AbstractRoom> validRooms)
-    {
+    { 
         slugcat = slugcat.ToLower();
 
         string baseSlugcat = SlugcatFor(slugcat, world.name);
@@ -57,7 +58,7 @@ static class ReusedRooms
         // else, baseSlugcat
     }
 
-    private static RoomSettings Settings(AbstractRoom a) => new(a.name, a.world.region, false, false, a.world.game.StoryCharacter);
+    public static RoomSettings Settings(AbstractRoom a) => new(a.name, a.world.region, false, false, a.world.game.StoryCharacter);
 
     public static string SlugcatFor(string slugcat, string region)
     {

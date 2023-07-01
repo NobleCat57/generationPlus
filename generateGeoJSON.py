@@ -42,6 +42,9 @@ task_export_room_features = True
 task_export_connection_features = True
 task_export_geo_features = True
 task_export_spawn_features = True
+task_export_object_features = True
+task_export_roomtag_features = True
+task_export_shortcut_features = True
 
 def do_slugcat(slugcat: str):
     if only_slugcat is not None and only_slugcat != slugcat:
@@ -548,6 +551,17 @@ def do_slugcat(slugcat: str):
                         properties=den))
 
                 print("creatures task done!")
+
+
+            ##Objects
+            if task_export_object_features:
+
+            ##RoomTags
+            if task_export_roomtag_features:
+           
+            ##Shortcuts
+            if task_export_shortcut_features:
+
 
             target = os.path.join(output_folder, slugcat, entry.name)
             if not os.path.exists(target):
