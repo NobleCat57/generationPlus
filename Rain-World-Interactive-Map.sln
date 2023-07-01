@@ -28,6 +28,11 @@ Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "Rain-World-Interactive-Map"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MapExporter", "MapExporter\MapExporter.csproj", "{B77EFD1D-F354-4F6E-8448-B104A6ED45DA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D0CCF3BC-9032-406B-9C97-1BA5B316F6C7}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
