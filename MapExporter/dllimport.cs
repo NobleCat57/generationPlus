@@ -1,6 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
 
+namespace MapExporter;
+
 public class HooksImport
 {
     // Import user32.dll (containing the function we need) and define

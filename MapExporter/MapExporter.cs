@@ -569,6 +569,7 @@ namespace MapExporter
             }
             yield return null;
 
+
             UnityEngine.Random.InitState(0);
             // go to room
             game.cameras[0].MoveCamera(room.realizedRoom, 0);

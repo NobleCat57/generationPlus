@@ -6,8 +6,7 @@ using System.IO;
 using RWCustom;
 using MoreSlugcats;
 using JollyCoop;
-using static Sony.NP.Matching;
-using System.ComponentModel;
+using System;
 
 namespace MapExporter;
 
@@ -19,7 +18,7 @@ public class RoomInfo : IJsonObject
     readonly string acronym;
 
     public string copyRooms;
-    public RoomInfo(RainWorldGame game, World world, AbstractRoom room, IEnumerable<string> raw)
+    public RoomInfo(RainWorldGame game, World world, List<AbstractRoom> validRooms, IEnumerable<string> raw, AbstractRoom room)
     {
         acronym = world.name;
 
@@ -28,19 +27,24 @@ public class RoomInfo : IJsonObject
 
         worldPlacedObjects = new HashSet<string>();
 
-        LoadValidRooms(game, world, room);
+        LoadValidRooms(game, world, validRooms, room);
         LoadRoomSettings(raw);
     }
-     //Attempt to add placed objects within room settings to the room capture process
-     void Container() {
+    // Attempt to add placed objects within room settings to the room capture process
 
-            SlugcatStats.Name slugcat = game.StoryCharacter;
-            HashSet<string> worldPlacedObjects;
-            worldPlacedObjects = new HashSet<string>();
+    // determine the valid rooms
 
+    //Find the room settings and add to worldPlacedObjects Array
+    public void LoadValidRooms(RainWorldGame game, World world, List<AbstractRoom> validRooms, AbstractRoom room)
+    {
+        SlugcatStats.Name slugcat = game.StoryCharacter;
+        ReusedRooms.SlugcatRoomsToUse(slugcat.value, world, validRooms);
+        
+        foreach (var roomname in validRooms)
+        {
             string path = AssetManager.ResolveFilePath(
-    $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
-                    );
+            $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
+            );
 
             if (!File.Exists(path))
             {
@@ -54,7 +58,7 @@ public class RoomInfo : IJsonObject
                         );
                     if (!File.Exists(path))
                     {
-                        Logger.LogWarning($"No room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+                        MapExporter.Logger.LogWarning($"No room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
 
                         path = AssetManager.ResolveFilePath(
                         $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
@@ -62,50 +66,55 @@ public class RoomInfo : IJsonObject
 
                         if (!File.Exists(path))
                         {
-                            Logger.LogWarning($"No gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+                            MapExporter.Logger.LogWarning($"No gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
                         }
                         else
                         {
-                            Logger.LogDebug($"Found specific gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+                            MapExporter.Logger.LogDebug($"Found specific gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
 
-                            AssimilatePlacedObjects(File.ReadAllLines(path));
+                            LoadRoomSettings(File.ReadAllLines(path));
                         }
                     }
                     else
-{
-    Logger.LogDebug($"Found generic gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
-    AssimilatePlacedObjects(File.ReadAllLines(path));
+                    {
+                        MapExporter.Logger.LogDebug($"Found generic gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+
+                        LoadRoomSettings(File.ReadAllLines(path));
                     }
                 }
                 else
                 {
-                    Logger.LogDebug($"Found generic room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
-    AssimilatePlacedObjects(File.ReadAllLines(path));
-}
+                    MapExporter.Logger.LogDebug($"Found generic room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+
+                    LoadRoomSettings(File.ReadAllLines(path));
+                }
 
 
             }
             else
-{
-    Logger.LogDebug($"Found specific room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
-    AssimilatePlacedObjects(File.ReadAllLines(path));
-}
-    }
-void AssimilatePlacedObjects(IEnumerable<string> raw)
-{
-    bool insideofplacedobjects = false;
-    foreach (var item in raw)
-    {
-                    if (item == "PlacedObjects: ") insideofplacedobjects = true;
-                    else if (item == "AmbientSounds: ") insideofplacedobjects = false;
-                    else if (insideofplacedobjects)
-                    {
-                        if (string.IsNullOrEmpty(item) || item.StartsWith("//")) continue;
-                        worldPlacedObjects.Add(item);
-                    }
-                }
+            {
+                MapExporter.Logger.LogDebug($"Found specific room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+
+                LoadRoomSettings(File.ReadAllLines(path));
             }
             File.WriteAllText(PathOfRoomSettings(slugcat.value, world.name), Json.Serialize(worldPlacedObjects));
+        }
+    }
+    // separate PlacedObjects from the rest of room settings
+    public void LoadRoomSettings(IEnumerable<string> raw)
+    {
+        bool withinbounds = false;
+        foreach (var item in raw)
+        {
+            if (item == "PlacedObjects: ") withinbounds = true;
+            else if (item == "AmbientSounds: ") withinbounds = false;
+            else if (withinbounds)
+            {
+                if (string.IsNullOrEmpty(item) || item.StartsWith("//")) continue;
+                worldPlacedObjects.Add(item);
+            }
+        }
+    }
 
 
         static bool IsSlugcatFromMSC(SlugcatStats.Name i)
@@ -161,8 +170,137 @@ void AssimilatePlacedObjects(IEnumerable<string> raw)
     {
         return rooms.TryGetValue(name, out var value) ? value : rooms[name] = new(name);
     }
+    
+    public Dictionary<string, object> ToJson()
+    {
+        var ret = new Dictionary<string, object>
+        {
+            ["acronym"] = acronym,
+        };
+        if (copyRooms == null)
+        {
+            ret["rooms"] = rooms;
+            ret["roomSettings"] = roomSettings;
+        }
+        else
+        {
+            ret["copyRooms"] = copyRooms;
+        }
+        ret["placedObjects"] = worldPlacedObjects.ToArray();
+        return ret;
+    }
+
+        sealed class SettingsEntry : IJsonObject
+        {
+            public string roomA;
+            public string roomB;
+            public IntVector2 posA;
+            public IntVector2 posB;
+            public int dirA;
+            public int dirB;
+
+            public SettingsEntry(string entry)
+            {
+                string[] fields = Regex.Split(entry, ", ");
+                roomA = fields[0];
+                roomB = fields[1];
+                posA = new IntVector2(int.Parse(fields[2]), int.Parse(fields[3]));
+                posB = new IntVector2(int.Parse(fields[4]), int.Parse(fields[5]));
+                dirA = int.Parse(fields[6]);
+                dirB = int.Parse(fields[7]);
+            }
+
+            public Dictionary<string, object> ToJson()
+            {
+                return new Dictionary<string, object>()
+                {
+                    { "roomA", roomA },
+                    { "roomB", roomB },
+                    { "dirA", dirA },
+                    { "dirB", dirB },
+                };
+            }
+        }
+        public void UpdateRoom(Room room)
+    {
+        GetOrCreateRoomEntry(room.abstractRoom.name).UpdateEntry(room);
+    }
+     public class RoomEntry : IJsonObject
+    {
+        public string roomName;
+
+        public RoomEntry(string roomName)
+        {
+            this.roomName = roomName;
+        }
+
+        // from map txt
+        public Vector2 devPos;
+        public Vector2 canPos;
+        public int canLayer;
+        public string subregion;
+        public bool everParsed = false;
+        public void ParseEntry(string entry)
+        {
+            string[] fields = Regex.Split(entry, "><");
+            canPos.x = float.Parse(fields[0]);
+            canPos.y = float.Parse(fields[1]);
+            devPos.x = float.Parse(fields[2]);
+            devPos.y = float.Parse(fields[3]);
+            canLayer = int.Parse(fields[4]);
+            subregion = fields[5];
+            everParsed = true;
+        }
+
+        // from room
+        public Vector2[] cameras; // TODO: can this cause issues if it's not the same as the cache?
+        private int[] size;
+        private int[,][] tiles;
+        private IntVector2[] nodes;
+
+        public void UpdateEntry(Room room)
+        {
+            cameras = room.cameraPositions;
+
+            size = new int[] { room.Width, room.Height };
+
+            tiles = new int[room.Width, room.Height][];
+            for (int k = 0; k < room.Width; k++)
+            {
+                for (int l = 0; l < room.Height; l++)
+                {
+                    // Dont like either available formats ?
+                    // Invent a new format
+                    tiles[k, l] = new int[] { (int)room.Tiles[k, l].Terrain, (room.Tiles[k, l].verticalBeam ? 2:0) + (room.Tiles[k, l].horizontalBeam ? 1:0), (int)room.Tiles[k, l].shortCut};
+                    //terain, vb+hb, sc
+                }
+            }
+            nodes = room.exitAndDenIndex;
+        }
+
+        // wish there was a better way to do this
+        public Dictionary<string, object> ToJson()
+        {
+            return new Dictionary<string, object>()
+            {
+                { "roomName", roomName },
+                { "canPos", Vec2arr(canPos) },
+                { "canLayer", canLayer },
+                { "devPos", Vec2arr(devPos) },
+                { "subregion", subregion },
+                { "cameras", cameras != null ? (from c in cameras select Vec2arr(c)).ToArray() : null},
+                { "nodes", nodes != null ? (from n in nodes select Intvec2arr(n)).ToArray() : null},
+                { "size", size},
+                { "tiles", tiles},
+            };
+        }
+    }
+
 
     //helpers
+    static float[] Vec2arr(Vector2 vec) => new float[] { vec.x, vec.y };
+    static float[] Vec2arr(Vector3 vec) => new float[] { vec.x, vec.y, vec.z };
+    static int[] Intvec2arr(IntVector2 vec) => new int[] { vec.x, vec.y};
     static string PathOfRegion(string slugcat, string region)
     {
         return Directory.CreateDirectory(Path.Combine(Custom.LegacyRootFolderDirectory(), "export", slugcat.ToLower(), region.ToLower())).FullName;
@@ -200,194 +338,4 @@ void AssimilatePlacedObjects(IEnumerable<string> raw)
             _ => 0              // everyone else has a mix of duplicate rooms
         };
     }
-
-    //determine the valid rooms
-
-    //Find the room settings
-    public void LoadValidRooms(RainWorldGame game, World world, AbstractRoom room)
-    {
-        SlugcatStats.Name slugcat = game.StoryCharacter;
-        HashSet<string> worldPlacedObjects;
-        worldPlacedObjects = new HashSet<string>();
-
-        string path = AssetManager.ResolveFilePath(
-                $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
-                );
-
-        if (!File.Exists(path))
-        {
-            path = AssetManager.ResolveFilePath(
-                $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings.txt"
-                );
-            if (!File.Exists(path))
-            {
-                path = AssetManager.ResolveFilePath(
-                    $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings.txt"
-                    );
-                if (!File.Exists(path))
-                {
-                    MapExporter.Logger.LogWarning($"No room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
-
-                    path = AssetManager.ResolveFilePath(
-                    $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
-                    );
-
-                    if (!File.Exists(path))
-                    {
-                        MapExporter.Logger.LogWarning($"No gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
-                    }
-                    else
-                    {
-                        MapExporter.Logger.LogDebug($"Found specific gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
-
-                        AssimilatePlacedObjects(File.ReadAllLines(path));
-                    }
-                }
-                else
-                {
-                    MapExporter.Logger.LogDebug($"Found generic gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
-
-                    AssimilatePlacedObjects(File.ReadAllLines(path));
-                }
-            }
-            else
-            {
-                MapExporter.Logger.LogDebug($"Found generic room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
-
-                AssimilatePlacedObjects(File.ReadAllLines(path));
-            }
-
-
-        }
-        else
-        {
-            MapExporter.Logger.LogDebug($"Found specific room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
-
-            AssimilatePlacedObjects(File.ReadAllLines(path));
-        }
-
-        File.WriteAllText(PathOfRoomSettings(slugcat.value, world.name), Json.Serialize(worldPlacedObjects));
-
-        void AssimilatePlacedObjects(IEnumerable<string> raw)
-        {
-            bool insideofplacedobjects = false;
-            foreach (var item in raw)
-            {
-                if (item == "PlacedObjects: ") insideofplacedobjects = true;
-                else if (item == "AmbientSounds: ") insideofplacedobjects = false;
-                else if (insideofplacedobjects)
-                {
-                    if (string.IsNullOrEmpty(item) || item.StartsWith("//")) continue;
-                    worldPlacedObjects.Add(item);
-                }
-            }
-        }
-
-    }
-    //separate PlacedObjects from the rest of room settings
-    public void LoadRoomSettings(IEnumerable<string> raw)
-    {
-        bool withinbounds = false;
-        foreach (var item in raw)
-        {
-            if (item == "PlacedObjects: ") withinbounds = true;
-            else if (item == "AmbientSounds: ") withinbounds = false;
-            else if (withinbounds)
-            {
-                if (string.IsNullOrEmpty(item) || item.StartsWith("//")) continue;
-                worldPlacedObjects.Add(item);
-            }
-        }
-    }
-
-
-    public Dictionary<string, object> ToJson()
-    {
-        var ret = new Dictionary<string, object>
-        {
-            ["acronym"] = acronym,
-        };
-        if (copyRooms == null)
-        {
-            ret["rooms"] = rooms;
-            ret["roomSettings"] = roomSettings;
-        }
-        else
-        {
-            ret["copyRooms"] = copyRooms;
-        }
-        ret["placedObjects"] = worldPlacedObjects.ToArray();
-        return ret;
-    }
-        public class RoomEntry : IJsonObject
-        {
-            public string roomName;
-
-            public RoomEntry(string roomName)
-            {
-                this.roomName = roomName;
-            }
-
-            // from map txt
-            public Vector2 devPos;
-            public Vector2 canPos;
-            public int canLayer;
-            public string subregion;
-            public bool everParsed = false;
-            public void ParseEntry(string entry)
-            {
-                string[] fields = Regex.Split(entry, ", ");
-                canPos.x = float.Parse(fields[0]);
-                canPos.y = float.Parse(fields[1]);
-                devPos.x = float.Parse(fields[2]);
-                devPos.y = float.Parse(fields[3]);
-                canLayer = int.Parse(fields[4]);
-                subregion = fields[5];
-                everParsed = true;
-            }
-
-            // wish there was a better way to do this
-            public Dictionary<string, object> ToJson()
-            {
-                return new Dictionary<string, object>()
-                {
-                    { "roomName", roomName },
-                    { "canLayer", canLayer },
-                    { "subregion", subregion },
-                };
-            }
-        }
-
-        sealed class SettingsEntry : IJsonObject
-        {
-            public string roomA;
-            public string roomB;
-            public IntVector2 posA;
-            public IntVector2 posB;
-            public int dirA;
-            public int dirB;
-
-            public SettingsEntry(string entry)
-            {
-                string[] fields = Regex.Split(entry, ", ");
-                roomA = fields[0];
-                roomB = fields[1];
-                posA = new IntVector2(int.Parse(fields[2]), int.Parse(fields[3]));
-                posB = new IntVector2(int.Parse(fields[4]), int.Parse(fields[5]));
-                dirA = int.Parse(fields[6]);
-                dirB = int.Parse(fields[7]);
-            }
-
-            public Dictionary<string, object> ToJson()
-            {
-                return new Dictionary<string, object>()
-                {
-                    { "roomA", roomA },
-                    { "roomB", roomB },
-                    { "dirA", dirA },
-                    { "dirB", dirB },
-                };
-            }
-        }
-
 }
