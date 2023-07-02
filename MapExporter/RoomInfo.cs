@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 using System.Text.RegularExpressions;
@@ -9,6 +10,7 @@ using JollyCoop;
 using System;
 
 namespace MapExporter;
+
 
 public class RoomInfo : IJsonObject
 {

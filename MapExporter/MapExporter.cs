@@ -15,12 +15,13 @@ using System.Runtime.InteropServices;
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618 // Type or member is obsolete
-namespace MapExporter
-{
-    [BepInPlugin("io.github.henpemaz-dual-juliacat", "Map Exporter: Downpour", "1.2.0")]
-    [BepInProcess("RainWorld.exe")]
+namespace MapExporter;
+
+    [BepInPlugin("io.github.henpemaz-dual-juliacat", "Map Exporter Downpour", "1.2.0")]
+    // [BepInProcess("RainWorld.exe")]
     public class MapExporter : BaseUnityPlugin
     {
+    /*
         internal static ManualLogSource LogSource
         {
             get
@@ -36,8 +37,9 @@ namespace MapExporter
                 return rw.processManager;
             }
         }
+    */
         // Config
-        static readonly string[] captureSpecific; // For example, "White;SU" loads Outskirts as Survivor
+        static readonly string[] captureSpecific = {""}; // For example, "White;SU" loads Outskirts as Survivor
         static readonly bool screenshots = true;
 
         static readonly Dictionary<string, int[]> blacklistedCams = new()
@@ -46,15 +48,16 @@ namespace MapExporter
         { "GW_S08", new int[]{2} }, // in vanilla only
         { "SL_C01", new int[]{4,5} }, // crescent order or will break
     };
+     public static new ManualLogSource Logger;
 
         public static Configurable<bool>[] cfgScreenshots = new Configurable<bool>[0];
         public static Configurable<bool>[] cfgCaptureSpecific = new Configurable<bool>[0];
         public static Configurable<bool>[] cfgCameraBlacklist = new Configurable<bool>[0];
 
-        public static new ManualLogSource Logger;
+       
 
         public const string PLUGIN_ID = "io.github.henpemaz-dual-juliacat";
-        public const string PLUGIN_NAME = "Map Exporter: Downpour";
+        public const string PLUGIN_NAME = "Map Exporter Downpour";
         public const string PLUGIN_VERSION = "1.2.0";
         private bool init = false;
         internal static MapExporter instance;
@@ -569,7 +572,6 @@ namespace MapExporter
             }
             yield return null;
 
-
             UnityEngine.Random.InitState(0);
             // go to room
             game.cameras[0].MoveCamera(room.realizedRoom, 0);
@@ -611,4 +613,3 @@ namespace MapExporter
             yield return null;
         }
     }
-}
