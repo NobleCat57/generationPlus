@@ -149,7 +149,7 @@ public class RoomInfo : IJsonObject
                     );
                 if (!File.Exists(path))
                 {
-                    MapExporterMain.Logger.LogWarning($"No room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+                    MapExporter.Logger.LogWarning($"No room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
 
                     path = AssetManager.ResolveFilePath(
                     $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
@@ -157,25 +157,25 @@ public class RoomInfo : IJsonObject
 
                     if (!File.Exists(path))
                     {
-                        MapExporterMain.Logger.LogWarning($"No gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+                        MapExporter.Logger.LogWarning($"No gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
                     }
                     else
                     {
-                        MapExporterMain.Logger.LogDebug($"Found specific gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+                        MapExporter.Logger.LogDebug($"Found specific gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
 
                         AssimilatePlacedObjects(File.ReadAllLines(path));
                     }
                 }
                 else
                 {
-                    MapExporterMain.Logger.LogDebug($"Found generic gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+                    MapExporter.Logger.LogDebug($"Found generic gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
 
                     AssimilatePlacedObjects(File.ReadAllLines(path));
                 }
             }
             else
             {
-                MapExporterMain.Logger.LogDebug($"Found generic room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+                MapExporter.Logger.LogDebug($"Found generic room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
 
                 AssimilatePlacedObjects(File.ReadAllLines(path));
             }
@@ -184,7 +184,7 @@ public class RoomInfo : IJsonObject
         }
         else
         {
-            MapExporterMain.Logger.LogDebug($"Found specific room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+            MapExporter.Logger.LogDebug($"Found specific room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
 
             AssimilatePlacedObjects(File.ReadAllLines(path));
         }

@@ -64,10 +64,10 @@ public class RegionInfo : IJsonObject
         }
 
         if (!File.Exists(path)) {
-            MapExporterMain.Logger.LogWarning($"No map data for {world.game.StoryCharacter}/{world.name} at {path}");
+            MapExporter.Logger.LogWarning($"No map data for {world.game.StoryCharacter}/{world.name} at {path}");
         }
         else {
-            MapExporterMain.Logger.LogDebug($"Found map data for {world.game.StoryCharacter}/{world.name} at {path}");
+            MapExporter.Logger.LogDebug($"Found map data for {world.game.StoryCharacter}/{world.name} at {path}");
 
             string[] contents = File.ReadAllLines(path);
 
@@ -78,7 +78,7 @@ public class RegionInfo : IJsonObject
                 if (sname == "Connection") {
                     connections.Add(new ConnectionEntry(split[1]));
                 }
-                else if (!MapExporterMain.HiddenRoom(world.GetAbstractRoom(sname))) {
+                else if (!MapExporter.HiddenRoom(world.GetAbstractRoom(sname))) {
                     GetOrCreateRoomEntry(sname).ParseEntry(split[1]);
                 }
             }
@@ -96,7 +96,7 @@ public class RegionInfo : IJsonObject
             AssimilateBatMigration(File.ReadAllLines(path));
         }
         else {
-            MapExporterMain.Logger.LogError($"WORLD FILE DOES NOT EXIST: {path}");
+            MapExporter.Logger.LogError($"WORLD FILE DOES NOT EXIST: {path}");
         }
     }
 

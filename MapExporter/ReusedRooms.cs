@@ -31,24 +31,24 @@ static class ReusedRooms
             return null;
         }
         if (!regions.TryGetValue(key, out RegionData regionData)) {
-            MapExporterMain.Logger.LogWarning($"NOT COPIED | Region settings are not stored for {baseSlugcat}/{world.name} coming from {slugcat}");
+            MapExporter.Logger.LogWarning($"NOT COPIED | Region settings are not stored for {baseSlugcat}/{world.name} coming from {slugcat}");
             return null;
         }
         if (regionData.settings.Count != validRooms.Count) {
-            MapExporterMain.Logger.LogWarning($"NOT COPIED | Different room count for {world.name} in {baseSlugcat} and {slugcat}");
+            MapExporter.Logger.LogWarning($"NOT COPIED | Different room count for {world.name} in {baseSlugcat} and {slugcat}");
             return null;
         }
         foreach (AbstractRoom room in validRooms) {
             if (!regionData.settings.TryGetValue(room.name, out RoomSettings existingSettings)) {
-                MapExporterMain.Logger.LogWarning($"NOT COPIED | The room {room.name} exists for {slugcat} but not {baseSlugcat}");
+                MapExporter.Logger.LogWarning($"NOT COPIED | The room {room.name} exists for {slugcat} but not {baseSlugcat}");
                 return null;
             }
             if (!Identical(existingSettings, Settings(room))) {
-                MapExporterMain.Logger.LogWarning($"NOT COPIED | The room {room.name} is different for {slugcat} and {baseSlugcat}");
+                MapExporter.Logger.LogWarning($"NOT COPIED | The room {room.name} is different for {slugcat} and {baseSlugcat}");
                 return null;
             }
         }
-        MapExporterMain.Logger.LogDebug($"Copying rooms from {baseSlugcat} to {slugcat}/{world.name}");
+        MapExporter.Logger.LogDebug($"Copying rooms from {baseSlugcat} to {slugcat}/{world.name}");
         return baseSlugcat;
 
         // EXCLUDE HIDDEN ROOMS.
