@@ -20,7 +20,6 @@ public class RegionInfo : IJsonObject
     readonly HashSet<string> worldRoomTags;
     readonly HashSet<string> worldSpawns;
     readonly HashSet<string> worldBatMigration;
-    readonly HashSet<string> worldPlacedObjects;
 
     public string copyRooms;
 
@@ -39,11 +38,9 @@ public class RegionInfo : IJsonObject
         worldRoomTags = new HashSet<string>();
         worldSpawns = new HashSet<string>();
         worldBatMigration = new HashSet<string>();
-        worldPlacedObjects = new HashSet<string>();
 
         LoadMapConfig(world);
         LoadWorldConfig(world);
-        LoadRoomConfig(world);
     }
 
     public RoomEntry GetOrCreateRoomEntry(string name)
@@ -98,11 +95,6 @@ public class RegionInfo : IJsonObject
         else {
             MapExporter.Logger.LogError($"WORLD FILE DOES NOT EXIST: {path}");
         }
-    }
-
-    public void LoadRoomConfig(World world)
-    {
-
     }
 
     public void AssimilateConditionalLinks(IEnumerable<string> raw)
@@ -193,7 +185,6 @@ public class RegionInfo : IJsonObject
         ret["roomTags"] = worldRoomTags.ToArray();
         ret["spawns"] = worldSpawns.ToArray();
         ret["batMigration"] = worldBatMigration.ToArray();
-        ret["placedObjects"] = worldPlacedObjects.ToArray();
         return ret;
     }
 

@@ -1,17 +1,6 @@
 using System;
 using Menu.Remix.MixedUI;
 using UnityEngine;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using Menu;
-using Menu.Remix;
-using Menu.Remix.MixedUI.ValueTypes;
-using BepInEx.Logging;
-using MoreSlugcats;
-using System.Globalization;
-using RWCustom;
-using On;
-using IL;
 
 namespace MapExporter
 {

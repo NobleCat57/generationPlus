@@ -9,6 +9,8 @@ using System.Reflection;
 using System.Security.Permissions;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using System;
+using System.Runtime.InteropServices;
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -19,122 +21,6 @@ namespace MapExporter
     [BepInProcess("RainWorld.exe")]
     public class MapExporter : BaseUnityPlugin
     {
-
-        public void Awake()
-        {
-            instance = this;
-            RainWorld.OnModsInit += new RainWorld.hook_OnModsInit(this.OnEnabled);
-        }
-
-        private void OnEnabled(RainWorld.orig_OnModsInit orig, RainWorld self)
-        {
-            orig.Invoke(self);
-            bool flag = init;
-            if (!flag)
-            {
-                init = true;
-                oi = new MapExporterOptions();
-                maskColor = oi.config.Bind<Color>("maskColor", Custom.hexToColor("36393F"), null);
-                activateKey = oi.config.Bind<KeyCode>("activateKey", KeyCode.G, null);
-                fgRemoval = oi.config.Bind<bool>("fgRemoval", true, null);
-                MachineConnector.SetRegisteredOI("mapexporter", oi);
-            }
-        }
-
-        public void Update()
-        {
-            bool flag = rw == null;
-            if (flag)
-            {
-                rw = UnityEngine.Object.FindObjectOfType<RainWorld>();
-            }
-            else
-            {
-                MainLoopProcess currentMainLoop = Pm.currentMainLoop;
-                bool flag2 = ((currentMainLoop != null) ? currentMainLoop.ID : null) != ProcessManager.ProcessID.Game;
-                if (flag2)
-                {
-                    mask = false;
-                    freeze = false;
-                }
-                else
-                {
-                    RainWorldGame rainWorldGame = Pm.currentMainLoop as RainWorldGame;
-                    bool flag3 = rainWorldGame.pauseMenu != null;
-                    if (!flag3)
-                    {
-                        bool flag4 = mask;
-                        if (flag4)
-                        {
-                            bool flag5 = !curRoom.BeingViewed;
-                            if (flag5)
-                            {
-                                mask = false;
-                            }
-                        }
-                        bool key = Input.GetKey(activateKey.Value);
-                        if (key)
-                        {
-                            bool flag6 = hold > 20;
-                            if (flag6)
-                            {
-                                bool flag7 = keyDown;
-                                if (flag7)
-                                {
-                                    keyDown = false;
-                                    freeze = !freeze;
-                                    base.Logger.LogMessage("Freeze " + (freeze ? "activate" : "deactivate"));
-                                }
-                            }
-                            else
-                            {
-                                hold += 1;
-                                keyDown = true;
-                            }
-                        }
-                        else
-                        {
-                            bool flag8 = keyDown;
-                            if (flag8)
-                            {
-                                mask = !mask;
-                                bool flag9 = mask;
-                                if (flag9)
-                                {
-                                    base.Logger.LogMessage("Apply Mask (removeFG: " + (fgRemoval.Value ? "O" : "X") + ")");
-                                    for (int i = 0; i < rainWorldGame.cameras.Length; i++)
-                                    {
-                                        rainWorldGame.cameras[i].ReturnFContainer("BackgroundShortcuts").isVisible = false;
-                                        bool value = fgRemoval.Value;
-                                        if (value)
-                                        {
-                                            rainWorldGame.cameras[i].ReturnFContainer("Foreground").isVisible = false;
-                                        }
-                                    }
-                                    curRoom = rainWorldGame.cameras[0].room;
-                                }
-                                else
-                                {
-                                    base.Logger.LogMessage("MapExporter) Revert Mask (fgRemoval: " + (fgRemoval.Value ? "O" : "X") + ")");
-                                    for (int j = 0; j < rainWorldGame.cameras.Length; j++)
-                                    {
-                                        rainWorldGame.cameras[j].ReturnFContainer("BackgroundShortcuts").isVisible = true;
-                                        bool value2 = fgRemoval.Value;
-                                        if (value2)
-                                        {
-                                            rainWorldGame.cameras[j].ReturnFContainer("Foreground").isVisible = true;
-                                        }
-                                    }
-                                }
-                            }
-                            keyDown = false;
-                            hold = 0;
-                        }
-                    }
-                }
-            }
-        }
-
         internal static ManualLogSource LogSource
         {
             get
@@ -173,9 +59,9 @@ namespace MapExporter
         private bool init = false;
         internal static MapExporter instance;
         internal static MapExporterOptions oi;
-        public static Configurable<Color> maskColor;
-        public static Configurable<KeyCode> activateKey;
-        public static Configurable<bool> fgRemoval;
+        internal static Configurable<Color> maskColor;
+        internal static Configurable<KeyCode> activateKey;
+        internal static Configurable<bool> fgRemoval;
         internal static short hold;
         internal static bool freeze;
         internal static bool mask;
@@ -682,84 +568,6 @@ namespace MapExporter
                 room.realizedRoom.cameraPositions = newpos.ToArray();
             }
             yield return null;
-
-            //Attempt to add placed objects within room settings to the room capture process
-
-            SlugcatStats.Name slugcat = game.StoryCharacter;
-            HashSet<string> worldPlacedObjects;
-            worldPlacedObjects = new HashSet<string>();
-
-            string path = AssetManager.ResolveFilePath(
-                    $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
-                    );
-
-            if (!File.Exists(path))
-            {
-                path = AssetManager.ResolveFilePath(
-                    $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings.txt"
-                    );
-                if (!File.Exists(path))
-                {
-                    path = AssetManager.ResolveFilePath(
-                        $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings.txt"
-                        );
-                    if (!File.Exists(path))
-                    {
-                        Logger.LogWarning($"No room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
-
-                        path = AssetManager.ResolveFilePath(
-                        $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
-                        );
-
-                        if (!File.Exists(path))
-                        {
-                            Logger.LogWarning($"No gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
-                        }
-                        else
-                        {
-                            Logger.LogDebug($"Found specific gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
-
-                            AssimilatePlacedObjects(File.ReadAllLines(path));
-                        }
-                    }
-                    else
-                    {
-                        Logger.LogDebug($"Found generic gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
-
-                        AssimilatePlacedObjects(File.ReadAllLines(path));
-                    }
-                }
-                else
-                {
-                    Logger.LogDebug($"Found generic room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
-
-                    AssimilatePlacedObjects(File.ReadAllLines(path));
-                }
-
-
-            }
-            else
-            {
-                Logger.LogDebug($"Found specific room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
-
-                AssimilatePlacedObjects(File.ReadAllLines(path));
-            }
-
-            void AssimilatePlacedObjects(IEnumerable<string> raw)
-            {
-                bool insideofplacedobjects = false;
-                foreach (var item in raw)
-                {
-                    if (item == "PlacedObjects: ") insideofplacedobjects = true;
-                    else if (item == "AmbientSounds: ") insideofplacedobjects = false;
-                    else if (insideofplacedobjects)
-                    {
-                        if (string.IsNullOrEmpty(item) || item.StartsWith("//")) continue;
-                        worldPlacedObjects.Add(item);
-                    }
-                }
-            }
-            File.WriteAllText(PathOfRoomSettings(slugcat.value, world.name), Json.Serialize(worldPlacedObjects));
 
             UnityEngine.Random.InitState(0);
             // go to room

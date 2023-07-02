@@ -30,6 +30,7 @@ center_of_tile = np.array([10,10])
 
 screenshots_root = "./py-input"
 output_folder = "./py-output"
+output_log = "output_log.txt"
 
 optimize_geometry = True
 skip_existing_tiles = True
@@ -42,7 +43,7 @@ task_export_room_features = True
 task_export_connection_features = True
 task_export_geo_features = True
 task_export_spawn_features = True
-task_export_object_features = True
+task_export_placedobject_features = True
 task_export_roomtag_features = True
 task_export_shortcut_features = True
 
@@ -554,13 +555,74 @@ def do_slugcat(slugcat: str):
 
 
             ##Objects
-            if task_export_object_features:
+            if task_export_placedobject_features:
+                placedobject_features = []
+                features["placedobject_features"] = placedobject_features
+                print("placed object task!")
 
             ##RoomTags
             if task_export_roomtag_features:
+                roomtag_features = []
+                features["roomtag_features"] = roomtag_features
+                print("room tag task!")
+                for roomentry in regiondata["RoomTags"]:
+                    roomentry = roomentry.strip()
+                    if not roomentry:
+                        continue
+
+                    if roomentry.startswith("GATE"):
+                        gate_rooms = [str(s.strip()).lower() for s in roomentry[3:roomentry.index(")")].split(",") if s.strip()]
+                        if len(gate_rooms) > 0 and slugcat.lower() in gate_rooms:
+                            continue
+                        roomentry = roomentry[roomentry.index(")")+1:]
+                    if roomentry.startswith("SWARMROOM"):
+                        swarmroom_rooms = [str(s.strip()).lower() for s in roomentry[3:roomentry.index(")")].split(",") if s.strip()]
+                        if len(swarmroom_rooms) > 0 and slugcat.lower() in swarmroom_rooms:
+                            continue
+                        roomentry = roomentry[roomentry.index(")")+1:]
+                    if roomentry.startswith("SHELTER"):
+                        shelter_rooms = [str(s.strip()).lower() for s in roomentry[3:roomentry.index(")")].split(",") if s.strip()]
+                        if len(shelter_rooms) > 0 and slugcat.lower() in shelter_rooms:
+                            continue
+                        roomentry = roomentry[roomentry.index(")")+1:]
+                    if roomentry.startswith("ANCIENTSHELTER"):
+                        ancientshelter_rooms = [str(s.strip()).lower() for s in roomentry[3:roomentry.index(")")].split(",") if s.strip()]
+                        if len(ancientshelter_rooms) > 0 and slugcat.lower() in ancientshelter_rooms:
+                            continue
+                        roomentry = roomentry[roomentry.index(")")+1:]
+                    if roomentry.startswith("SCAVOUTPOST"):
+                        scavoutpost_rooms = [str(s.strip()).lower() for s in roomentry[3:roomentry.index(")")].split(",") if s.strip()]
+                        if len(scavoutpost_rooms) > 0 and slugcat.lower() in scavoutpost_rooms:
+                            continue
+                        roomentry = roomentry[roomentry.index(")")+1:]
+                    if roomentry.startswith("SCAVTRADER"):
+                        scavtrader_rooms = [str(s.strip()).lower() for s in roomentry[3:roomentry.index(")")].split(",") if s.strip()]
+                        if len(scavtrader_rooms) > 0 and slugcat.lower() in scavtrader_rooms:
+                            continue
+                        roomentry = roomentry[roomentry.index(")")+1:]
+                    if roomentry.startswith("PERF_HEAVY"):
+                        perf_heavy_rooms = [str(s.strip()).lower() for s in roomentry[3:roomentry.index(")")].split(",") if s.strip()]
+                        if len(perf_heavy_rooms) > 0 and slugcat.lower() in perf_heavy_rooms:
+                            continue
+                        roomentry = roomentry[roomentry.index(")")+1:]
+                    if roomentry.startswith("NOTRACKERS"):
+                        notrackers_rooms = [str(s.strip()).lower() for s in roomentry[3:roomentry.index(")")].split(",") if s.strip()]
+                        if len(notrackers_rooms) > 0 and slugcat.lower() in notrackers_rooms:
+                            continue
+                        roomentry = roomentry[roomentry.index(")")+1:]
+                    if roomentry.startswith("ARENA"):
+                        arena_rooms = [str(s.strip()).lower() for s in roomentry[3:roomentry.index(")")].split(",") if s.strip()]
+                        if len(arena_rooms) > 0 and slugcat.lower() in arena_rooms:
+                            continue
+                        roomentry = roomentry[roomentry.index(")")+1:]
+
+                print("room tag task done!")
            
             ##Shortcuts
             if task_export_shortcut_features:
+                shortcut_features = []
+                features["shortcut_features"] = shortcut_features
+                print("shortcut task!")
 
 
             target = os.path.join(output_folder, slugcat, entry.name)
@@ -575,6 +637,7 @@ def do_slugcat(slugcat: str):
     print("Slugcat done! " + slugcat)
 
 os.makedirs(output_folder, exist_ok=True)
+os.makefile(output_log, exist_oke=True)
 
 # Copy slugcats.json
 with open(os.path.join(screenshots_root, "slugcats.json"), "r") as slugcats_from:
@@ -587,4 +650,5 @@ for slugcat_entry in os.scandir(screenshots_root):
         do_slugcat(slugcat_entry.name)
 
 print("Done!")
+output_log.write(print().read)
 s = input()

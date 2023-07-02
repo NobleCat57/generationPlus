@@ -4,9 +4,10 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.IO;
 using RWCustom;
-using System;
 using MoreSlugcats;
 using JollyCoop;
+using static Sony.NP.Matching;
+using System.ComponentModel;
 
 namespace MapExporter;
 
@@ -30,12 +31,88 @@ public class RoomInfo : IJsonObject
         LoadValidRooms(game, world, room);
         LoadRoomSettings(raw);
     }
+     //Attempt to add placed objects within room settings to the room capture process
+     void Container() {
+
+            SlugcatStats.Name slugcat = game.StoryCharacter;
+            HashSet<string> worldPlacedObjects;
+            worldPlacedObjects = new HashSet<string>();
+
+            string path = AssetManager.ResolveFilePath(
+    $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
+                    );
+
+            if (!File.Exists(path))
+            {
+                path = AssetManager.ResolveFilePath(
+                    $"World{Path.DirectorySeparatorChar}{world.name}-rooms{Path.DirectorySeparatorChar}{room.name}_settings.txt"
+                    );
+                if (!File.Exists(path))
+                {
+                    path = AssetManager.ResolveFilePath(
+                        $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings.txt"
+                        );
+                    if (!File.Exists(path))
+                    {
+                        Logger.LogWarning($"No room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+
+                        path = AssetManager.ResolveFilePath(
+                        $"World{Path.DirectorySeparatorChar}gates{Path.DirectorySeparatorChar}{room.name}_settings-{world.game.GetStorySession.saveState.saveStateNumber}.txt"
+                        );
+
+                        if (!File.Exists(path))
+                        {
+                            Logger.LogWarning($"No gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+                        }
+                        else
+                        {
+                            Logger.LogDebug($"Found specific gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+
+                            AssimilatePlacedObjects(File.ReadAllLines(path));
+                        }
+                    }
+                    else
+{
+    Logger.LogDebug($"Found generic gate data for {world.game.StoryCharacter}/gates/{room.name} at {path}");
+    AssimilatePlacedObjects(File.ReadAllLines(path));
+                    }
+                }
+                else
+                {
+                    Logger.LogDebug($"Found generic room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+    AssimilatePlacedObjects(File.ReadAllLines(path));
+}
+
+
+            }
+            else
+{
+    Logger.LogDebug($"Found specific room data for {world.game.StoryCharacter}/{world.name}-rooms/{room.name} at {path}");
+    AssimilatePlacedObjects(File.ReadAllLines(path));
+}
+    }
+void AssimilatePlacedObjects(IEnumerable<string> raw)
+{
+    bool insideofplacedobjects = false;
+    foreach (var item in raw)
+    {
+                    if (item == "PlacedObjects: ") insideofplacedobjects = true;
+                    else if (item == "AmbientSounds: ") insideofplacedobjects = false;
+                    else if (insideofplacedobjects)
+                    {
+                        if (string.IsNullOrEmpty(item) || item.StartsWith("//")) continue;
+                        worldPlacedObjects.Add(item);
+                    }
+                }
+            }
+            File.WriteAllText(PathOfRoomSettings(slugcat.value, world.name), Json.Serialize(worldPlacedObjects));
+
 
         static bool IsSlugcatFromMSC(SlugcatStats.Name i)
-        {
-            if (!(i.value == "Rivulet") && !(i.value == "Artificer") && !(i.value == "Saint") && !(i.value == "Spear") && !(i.value == "Gourmand"))
-            {
-                return i.value == "Inv";
+{
+    if (!(i.value == "Rivulet") && !(i.value == "Artificer") && !(i.value == "Saint") && !(i.value == "Spear") && !(i.value == "Gourmand"))
+    {
+        return i.value == "Inv";
             }
 
             return true;
